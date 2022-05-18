@@ -1,0 +1,51 @@
+networks:
+  goalrush:
+    driver: bridge
+services:
+  app:
+    build:
+      context: ./client
+    ports:
+      - '3000:3000'
+    stdin_open: true
+    volumes:
+      - ./my-app:/usr/src/app/my-app
+      - /usr/src/app/my-app/node_modules
+  api:
+    container_name: api
+    image: 'node:17-alpine'
+    env_file:
+      - ./server/api/.env
+    working_dir: /usr/src/app
+    volumes:
+      - './server/api:/usr/src/app'
+    command: npm run dev
+    ports:
+      - '5001:5001'
+    networks:
+      - goalrush
+    depends_on:
+      - db
+  db:
+    container_name: db
+    image: postgres
+    restart: always
+    env_file:
+      - ./server/db/.env
+    volumes:
+      - './server/db/data:/var/lib/postgresql/data'
+      - './server/db/scripts/init.sql:/docker-entrypoint-initdb.d/init.sql'
+    ports:
+      - '5432:5432'
+    networks:
+      - goalrush
+  adminer:
+    container_name: adminer
+    restart: unless-stopped
+    image: adminer
+    ports:
+      - '8080:8080'
+    networks:
+      - goalrush
+    depends_on:
+      - db
